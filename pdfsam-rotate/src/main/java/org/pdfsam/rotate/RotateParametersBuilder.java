@@ -1,11 +1,11 @@
-/* 
+/*
  * This file is part of the PDF Split And Merge source code
  * Created on 26/giu/2014
  * Copyright 2017 by Sober Lemur S.a.s. di Vacondio Andrea (info@pdfsam.org).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as 
- * published by the Free Software Foundation, either version 3 of the 
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -19,9 +19,7 @@
 package org.pdfsam.rotate;
 
 import static java.util.Objects.isNull;
-
 import java.util.Set;
-
 import org.pdfsam.support.params.AbstractPdfOutputParametersBuilder;
 import org.pdfsam.support.params.MultipleOutputTaskParametersBuilder;
 import org.pdfsam.task.BulkRotateParameters;
@@ -35,29 +33,73 @@ import org.sejda.model.rotation.Rotation;
 
 /**
  * Builder for {@link BulkRotateParameters}
- * 
- * @author Andrea Vacondio
  *
+ * @
+ *
+
  */
 class RotateParametersBuilder extends AbstractPdfOutputParametersBuilder<BulkRotateParameters>
-        implements MultipleOutputTaskParametersBuilder<BulkRotateParameters> {
+        implements MultipleOutputTaskParametersBuilder<BulkRotateParameters>
+{
 
     private SingleOrMultipleTaskOutput output;
     private String prefix;
-    private Set<PdfRotationInput> inputs = new NullSafeSet<>();
-    private Rotation rotation;
+    private Set<PdfRotationInput> Inputs = new NullSafeSet<>();
+    private Rotation rotate;
     private PredefinedSetOfPages predefinedRotationType;
 
     void addInput(PdfSource<?> source, Set<PageRange> pageSelection) {
+        int initial;
+        int end;
         if (isNull(pageSelection) || pageSelection.isEmpty()) {
-            this.inputs.add(new PdfRotationInput(source, rotation, predefinedRotationType));
-        } else {
-            this.inputs.add(new PdfRotationInput(source, rotation, pageSelection.stream().toArray(PageRange[]::new)));
+            this.Inputs.add(new PdfRotationInput(source, rotate, predefinedRotationType));
+        }
+        else {
+            //Adding features for even and odd
+            Set<PageRange> NewPage=new NullSafeSet<>();
+            for(PageRange pr : pageSelection) {
+                switch (predefinedRotationType) {
+                    //Odd pages
+                    case ODD_PAGES: {
+                        initial = pr.getStart()%2 == 0 ? pr.getStart()+1 : pr.getStart();
+                       end = pr.getEnd()%2 == 0 ? pr.getEnd()-1 : pr.getEnd();
+                        if (end %2 != 0 && end < end)
+                        {
+                            NewPage.add(new PageRange(end,end));
+                        }
+                        else {
+                            for (int i = initial; i <= end; i += 2)
+                                NewPage.add(new PageRange(i, i));
+                        }
+                        break;
+                    }
+                    //Even page
+                    case EVEN_PAGES: {
+                        initial = pr.getStart()%2 == 1 ? pr.getStart()+1 : pr.getStart();
+                        end = pr.getEnd()%2 == 1 ? pr.getEnd()-1 : pr.getEnd();
+                        if (end < initial && end %2 == 0)
+                        {
+                            NewPage.add(new PageRange(end,end));
+                        }
+                        else {
+                            for (int i = initial; i <= end; i += 2)
+                                NewPage.add(new PageRange(i, i));
+                        }
+                        break;
+                    }
+                    //All pages
+                    case ALL_PAGES: {
+                        this.Inputs.add(new PdfRotationInput(source, rotate, pageSelection.stream().toArray(PageRange[]::new)));
+                        return;
+                    }
+                }
+            }
+            this.Inputs.add(new PdfRotationInput(source, rotate, NewPage.stream().toArray(PageRange[]::new)));
         }
     }
 
     boolean hasInput() {
-        return !inputs.isEmpty();
+        return !Inputs.isEmpty();
     }
 
     @Override
@@ -79,7 +121,7 @@ class RotateParametersBuilder extends AbstractPdfOutputParametersBuilder<BulkRot
     }
 
     public void rotation(Rotation rotation) {
-        this.rotation = rotation;
+        this.rotate = rotation;
     }
 
     public void rotationType(PredefinedSetOfPages predefinedRotationType) {
@@ -95,7 +137,7 @@ class RotateParametersBuilder extends AbstractPdfOutputParametersBuilder<BulkRot
         params.setVersion(getVersion());
         params.setOutput(getOutput());
         params.setOutputPrefix(getPrefix());
-        inputs.forEach(params::addInput);
+        Inputs.forEach(params::addInput);
         return params;
     }
 
