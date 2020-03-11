@@ -1,11 +1,11 @@
-/* 
+/*
  * This file is part of the PDF Split And Merge source code
  * Created on 22 giu 2016
  * Copyright 2017 by Sober Lemur S.a.s. di Vacondio Andrea (info@pdfsam.org).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as 
- * published by the Free Software Foundation, either version 3 of the 
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -29,30 +29,83 @@ import org.sejda.commons.collection.NullSafeSet;
 import org.sejda.conversion.exception.ConversionException;
 import org.sejda.model.pdf.page.PageRange;
 
-/**
- * @author Andrea Vacondio
- *
- */
+
 public final class ConversionUtils {
+    //private static final Logger LOG = LoggerFactory.getLogger(ConversionUtils.class);
 
     private ConversionUtils() {
         // hide
     }
 
-    /**
-     * @return the {@link PageRange} set for the given string, an empty set otherwise.
-     */
     public static Set<PageRange> toPageRangeSet(String selection) throws ConversionException {
+       // LOG.info("pdfsam-core: support: param: conversionUtils:: BUG::: selection = {}",selection);
         if (isNotBlank(selection)) {
             Set<PageRange> pageRangeSet = new NullSafeSet<>();
             String[] tokens = splitAndTrim(selection, ",");
             for (String current : tokens) {
+               // LOG.info("pdfsam-core: support: param: conversionUtils:: BUG::: current page= {}",current);
                 PageRange range = toPageRange(current);
+                //LOG.info("pdfsam-core: support: param: conversionUtils:: BUG::: range start = {}; end={}, range={}", range.getStart(), range.getEnd(),range.toString());
                 if (range.getEnd() < range.getStart()) {
                     throw new ConversionException(
                             DefaultI18nContext.getInstance().i18n("Invalid range: {0}.", range.toString()));
                 }
-                pageRangeSet.add(range);
+                /* TODO- Check if the range already present in the pageRangeSet */
+                if (!pageRangeSet.isEmpty()) {
+                    PageRange tmpRange = range;
+                    boolean update = true;
+                    for (PageRange item : pageRangeSet) {
+                        update = true;
+                        // 1-5 present | new 2-6
+                        if (tmpRange.getEnd() <= item.getEnd()) {
+                            update = false;
+                            continue;
+                        }
+                        // 1-8 present | new 2-20
+                        if (tmpRange.getStart() <= item.getEnd()) {
+                            // Present 1-4| new 5
+                            if (tmpRange.getStart() == tmpRange.getEnd()) {
+                                update = false;
+                                continue;
+                            }
+                            // Present 1-8,9-40,50 | new 30-80
+                            // Remove 50 as it is included in 41-80
+                            if (item.getStart() == item.getEnd() && item.getStart() >=tmpRange.getStart() && item.getEnd() <=tmpRange.getEnd()){
+                                pageRangeSet.remove(item);
+                               // LOG.info("pdfsam-core: support: param: conversionUtils:: BUG::: REMOVED item={}; tmprange={}",item.toString(),tmpRange.toString());
+
+//                                if (tmpRange.getStart() == range.getStart() &&  tmpRange.getEnd() == range.getEnd()){
+//                                    update=false;
+//                                }
+                                continue;
+                            }
+
+                            int tmpStart = tmpRange.getStart() + 1;
+                            while (tmpStart <= item.getEnd()) {
+                                tmpStart++;
+                            }
+                            if (tmpStart > tmpRange.getEnd()) {
+                                update = false;
+                                continue;
+                            }
+                            tmpRange = toPageRange(tmpStart + "-" + tmpRange.getEnd());
+                        }
+
+                    }
+                    //LOG.info("pdfsam-core: support: param: conversionUtils:: BUG::: SKIP-CHECK range added = {}; update={}",tmpRange,update);
+                    if (update) {
+                        pageRangeSet.add(tmpRange);
+                    }
+                }else {
+                   // LOG.info("pdfsam-core: support: param: conversionUtils:: BUG::: else range added = {}",range);
+                    pageRangeSet.add(range);
+                }
+                for(PageRange item:pageRangeSet){
+                   // LOG.info("pdfsam-core: support: param: conversionUtils:: BUG::: Final range = {}",item.toString());
+
+                }
+//                pageRangeSet.add(range);
+//                LOG.info("pdfsam-core: support: param: conversionUtils:: BUG::: range added = {}",range);
             }
             return pageRangeSet;
         }
