@@ -51,7 +51,9 @@ import org.sejda.conversion.exception.ConversionException;
  */
 public class RotateSelectionPaneTest {
 
-    private static final String MODULE = "MODULE";
+    private RotateSelectionPaneTestCore rotateSelectionPaneTestCore = new RotateSelectionPaneTestCore();
+
+	public static final String MODULE = "MODULE";
 
     @Rule
     public ClearEventStudioRule clear = new ClearEventStudioRule(MODULE);
@@ -60,66 +62,37 @@ public class RotateSelectionPaneTest {
     @Rule
     public InitializeAndApplyJavaFxThreadRule javaFxThread = new InitializeAndApplyJavaFxThreadRule();
 
-    private RotateParametersBuilder builder;
-    private Consumer<String> onError;
-    private RotateSelectionPane victim;
-
     @Before
     public void setUp() {
-        builder = mock(RotateParametersBuilder.class);
-        onError = mock(Consumer.class);
-        victim = new RotateSelectionPane(MODULE);
+        rotateSelectionPaneTestCore.setUp();
     }
 
     @Test
     public void empty() {
-        victim.apply(builder, onError);
-        verify(onError).accept(anyString());
-        verify(builder, never()).addInput(any(), any());
+        rotateSelectionPaneTestCore.empty();
     }
 
     @Test
     public void emptyPageSelection() throws Exception {
-        populate();
-        when(builder.hasInput()).thenReturn(Boolean.TRUE);
-        victim.apply(builder, onError);
-        verify(onError, never()).accept(anyString());
-        ArgumentCaptor<Set> ranges = ArgumentCaptor.forClass(Set.class);
-        verify(builder).addInput(any(), ranges.capture());
-        assertTrue(ranges.getValue().isEmpty());
+        rotateSelectionPaneTestCore.emptyPageSelection(this);
     }
 
     @Test
     public void notEmptyPageSelection() throws Exception {
-        populate();
-        when(builder.hasInput()).thenReturn(Boolean.TRUE);
-        victim.table().getItems().get(0).pageSelection.set("1,3-10");
-        victim.apply(builder, onError);
-        verify(onError, never()).accept(anyString());
-        ArgumentCaptor<Set> ranges = ArgumentCaptor.forClass(Set.class);
-        verify(builder).addInput(any(), ranges.capture());
-        assertEquals(2, ranges.getValue().size());
+        rotateSelectionPaneTestCore.notEmptyPageSelection(this);
     }
 
     @Test
     public void converstionException() throws Exception {
-        populate();
-        doThrow(new ConversionException("message")).when(builder).addInput(any(), any());
-        victim.apply(builder, onError);
-        verify(builder).addInput(any(), any());
-        verify(onError).accept(eq("message"));
+        rotateSelectionPaneTestCore.converstionException(this);
     }
 
     @Test
     public void emptyByZeroPagesSelected() throws Exception {
-        populate();
-        victim.table().getItems().get(0).pageSelection.set("0");
-        victim.apply(builder, onError);
-        verify(onError).accept(anyString());
-        verify(builder, never()).addInput(any(), any());
+        rotateSelectionPaneTestCore.emptyByZeroPagesSelected(this);
     }
 
-    private void populate() throws Exception {
+    public void populate() throws Exception {
         File file = folder.newFile("temp.pdf");
         PdfLoadRequestEvent loadEvent = new PdfLoadRequestEvent(MODULE);
         loadEvent.add(PdfDocumentDescriptor.newDescriptorNoPassword(file));
