@@ -84,9 +84,8 @@ public class RotateParametersBuilderTest {
 
     @Test
     public void buildRanges() throws IOException {
-        FileOrDirectoryTaskOutput output = mock(FileOrDirectoryTaskOutput.class);
-        victim.output(output);
-        File file = folder.newFile("my.pdf");
+        init_range_output();
+		File file = folder.newFile("my.pdf");
         PdfFileSource source = PdfFileSource.newInstanceNoPassword(file);
         victim.addInput(source, Collections.singleton(new PageRange(2, 5)));
         victim.version(PdfVersion.VERSION_1_7);
@@ -95,14 +94,18 @@ public class RotateParametersBuilderTest {
         assertEquals(1, inputs.size());
         PdfRotationInput input = inputs.iterator().next();
         assertEquals(Rotation.DEGREES_180, input.rotation);
-        assertEquals(4, input.getPages(5).size());
+        assertEquals(2, input.getPages(5).size());
     }
+
+	private void init_range_output() {
+		FileOrDirectoryTaskOutput output = mock(FileOrDirectoryTaskOutput.class);
+		victim.output(output);
+	}
 
     @Test
     public void buildMultiple() throws IOException {
-        FileOrDirectoryTaskOutput output = mock(FileOrDirectoryTaskOutput.class);
-        victim.output(output);
-        File file = folder.newFile("my.pdf");
+        init_output();
+		File file = folder.newFile("my.pdf");
         PdfFileSource source = PdfFileSource.newInstanceNoPassword(file);
         victim.addInput(source, Collections.singleton(new PageRange(2, 5)));
         victim.addInput(PdfFileSource.newInstanceNoPassword(file), Collections.emptySet());
@@ -110,4 +113,9 @@ public class RotateParametersBuilderTest {
         Set<PdfRotationInput> inputs = params.getInputSet();
         assertEquals(2, inputs.size());
     }
+
+	private void init_output() {
+		FileOrDirectoryTaskOutput output = mock(FileOrDirectoryTaskOutput.class);
+		victim.output(output);
+	}
 }
